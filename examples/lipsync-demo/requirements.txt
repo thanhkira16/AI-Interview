@@ -1,0 +1,8 @@
+# Text-to-Speech dependencies
+google-genai
+
+# Speech-to-Text dependencies  
+google-cloud-speech
+
+# Additional utilities
+python-dotenv
