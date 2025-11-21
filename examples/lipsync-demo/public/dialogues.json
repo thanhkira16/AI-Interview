@@ -1,0 +1,274 @@
+{
+    "conversations": [
+        {
+            "id": "greeting",
+            "title": "Chào hỏi",
+            "description": "Các câu chào hỏi cơ bản",
+            "dialogues": [
+                {
+                    "id": "hello",
+                    "text": "Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp gì cho bạn hôm nay?",
+                    "audioFile": "/audios/welcome-message.mp3",
+                    "duration": 5.2,
+                    "language": "vi"
+                },
+                {
+                    "id": "good_morning",
+                    "text": "Chào buổi sáng! Hy vọng bạn đã có một đêm ngon giấc.",
+                    "audioFile": "/audios/ElevenLabs_Emma_vowels.mp3",
+                    "duration": 3.8,
+                    "language": "vi"
+                },
+                {
+                    "id": "how_are_you",
+                    "text": "Bạn có khỏe không? Hôm nay có gì thú vị không?",
+                    "audioFile": "/audios/ElevenLabs_Liam_vowels.mp3",
+                    "duration": 4.1,
+                    "language": "vi"
+                }
+            ]
+        },
+        {
+            "id": "introduction",
+            "title": "Giới thiệu",
+            "description": "Tự giới thiệu và khả năng",
+            "dialogues": [
+                {
+                    "id": "self_intro",
+                    "text": "Tôi là một AI avatar có khả năng đồng bộ môi với giọng nói. Tôi được tạo ra để tương tác tự nhiên với con người.",
+                    "audioFile": "/audios/ElevenLabs_Emma_consonants.mp3",
+                    "duration": 8.5,
+                    "language": "vi"
+                },
+                {
+                    "id": "capabilities",
+                    "text": "Tôi có thể trả lời câu hỏi, giải thích khái niệm, và thậm chí kể chuyện. Hãy thử hỏi tôi bất cứ điều gì!",
+                    "audioFile": "/audios/ElevenLabs_Liam_consonants.mp3",
+                    "duration": 7.2,
+                    "language": "vi"
+                }
+            ]
+        },
+        {
+            "id": "emotions",
+            "title": "Cảm xúc",
+            "description": "Thể hiện các cảm xúc khác nhau",
+            "dialogues": [
+                {
+                    "id": "happy",
+                    "text": "Tôi cảm thấy rất vui mừng khi được nói chuyện với bạn! Đây thực sự là một ngày tuyệt vời.",
+                    "audioFile": "/audios/ElevenLabs_Emma_a.mp3",
+                    "duration": 6.3,
+                    "language": "vi",
+                    "emotion": "happy"
+                },
+                {
+                    "id": "excited",
+                    "text": "Wow! Điều này thật tuyệt vời! Tôi không thể chờ đợi để khám phá thêm những điều mới mẻ!",
+                    "audioFile": "/audios/ElevenLabs_Emma_e.mp3",
+                    "duration": 5.8,
+                    "language": "vi",
+                    "emotion": "excited"
+                },
+                {
+                    "id": "thoughtful",
+                    "text": "Hmm... đây là một câu hỏi rất thú vị. Hãy để tôi suy nghĩ một chút...",
+                    "audioFile": "/audios/ElevenLabs_Liam_think.mp3",
+                    "duration": 4.9,
+                    "language": "vi",
+                    "emotion": "thoughtful"
+                },
+                {
+                    "id": "surprised",
+                    "text": "Ồ! Tôi không ngờ điều đó! Thật là một bất ngờ thú vị!",
+                    "audioFile": "/audios/ElevenLabs_Emma_o.mp3",
+                    "duration": 4.2,
+                    "language": "vi",
+                    "emotion": "surprised"
+                }
+            ]
+        },
+        {
+            "id": "storytelling",
+            "title": "Kể chuyện",
+            "description": "Những câu chuyện ngắn thú vị",
+            "dialogues": [
+                {
+                    "id": "wizard_story",
+                    "text": "Ngày xửa ngày xưa, có một pháp sư trẻ tuổi tên là Wizard. Cậu ấy sống trong một tòa tháp cao chót vót.",
+                    "audioFile": "/audios/ElevenLabs_Emma_wizard.mp3",
+                    "duration": 7.8,
+                    "language": "vi",
+                    "genre": "fantasy"
+                },
+                {
+                    "id": "tech_story",
+                    "text": "Trong tương lai, các AI như tôi sẽ trở thành bạn đồng hành thân thiết của con người trong cuộc sống hàng ngày.",
+                    "audioFile": "/audios/ElevenLabs_Liam_you.mp3",
+                    "duration": 8.1,
+                    "language": "vi",
+                    "genre": "sci-fi"
+                }
+            ]
+        },
+        {
+            "id": "educational",
+            "title": "Giáo dục",
+            "description": "Nội dung giáo dục và giải thích",
+            "dialogues": [
+                {
+                    "id": "phonetics_vowels",
+                    "text": "Trong ngữ âm học, nguyên âm là những âm được phát ra khi luồng khí từ phổi đi qua thanh quản mà không bị cản trở.",
+                    "audioFile": "/audios/ElevenLabs_Emma_vowels.mp3",
+                    "duration": 9.2,
+                    "language": "vi",
+                    "subject": "linguistics"
+                },
+                {
+                    "id": "phonetics_consonants",
+                    "text": "Phụ âm được tạo ra khi luồng khí bị cản trở một phần hoặc hoàn toàn bởi lưỡi, môi, răng hoặc các bộ phận khác.",
+                    "audioFile": "/audios/ElevenLabs_Liam_consonants.mp3",
+                    "duration": 8.7,
+                    "language": "vi",
+                    "subject": "linguistics"
+                },
+                {
+                    "id": "technology",
+                    "text": "Công nghệ lipsync sử dụng thuật toán phân tích tần số âm thanh để tạo ra các viseme - đơn vị thị giác nhỏ nhất của lời nói.",
+                    "audioFile": "/audios/OpenAI_Alloy_test.mp3",
+                    "duration": 10.3,
+                    "language": "vi",
+                    "subject": "technology"
+                }
+            ]
+        },
+        {
+            "id": "interactive",
+            "title": "Tương tác",
+            "description": "Câu hỏi và tương tác với người dùng",
+            "dialogues": [
+                {
+                    "id": "question_1",
+                    "text": "Bạn có muốn nghe tôi kể một câu chuyện không? Tôi biết rất nhiều câu chuyện thú vị!",
+                    "audioFile": "/audios/ElevenLabs_Emma_you.mp3",
+                    "duration": 6.5,
+                    "language": "vi",
+                    "type": "question"
+                },
+                {
+                    "id": "question_2",
+                    "text": "Bạn muốn học về chủ đề gì hôm nay? Tôi có thể giải thích nhiều lĩnh vực khác nhau.",
+                    "audioFile": "/audios/ElevenLabs_Liam_not.mp3",
+                    "duration": 7.1,
+                    "language": "vi",
+                    "type": "question"
+                },
+                {
+                    "id": "encouragement",
+                    "text": "Đừng ngần ngại hỏi tôi bất cứ điều gì! Không có câu hỏi nào là quá đơn giản hay quá phức tạp.",
+                    "audioFile": "/audios/ElevenLabs_Emma_think.mp3",
+                    "duration": 7.8,
+                    "language": "vi",
+                    "type": "encouragement"
+                }
+            ]
+        },
+        {
+            "id": "pronunciation",
+            "title": "Phát âm",
+            "description": "Luyện tập phát âm các âm cụ thể",
+            "dialogues": [
+                {
+                    "id": "sound_a",
+                    "text": "A - đây là âm 'a' mở. Hãy quan sát cách tôi mở miệng rộng.",
+                    "audioFile": "/audios/ElevenLabs_Emma_a.mp3",
+                    "duration": 3.2,
+                    "language": "vi",
+                    "phoneme": "a"
+                },
+                {
+                    "id": "sound_e",
+                    "text": "E - âm 'e' này được phát âm với miệng hơi khép lại.",
+                    "audioFile": "/audios/ElevenLabs_Liam_e.mp3",
+                    "duration": 2.8,
+                    "language": "vi",
+                    "phoneme": "e"
+                },
+                {
+                    "id": "sound_o",
+                    "text": "O - để phát âm 'o', tôi sẽ tròn môi như thế này.",
+                    "audioFile": "/audios/ElevenLabs_Emma_o.mp3",
+                    "duration": 3.0,
+                    "language": "vi",
+                    "phoneme": "o"
+                },
+                {
+                    "id": "consonant_th",
+                    "text": "Th - âm 'th' này được tạo ra bằng cách đặt lưỡi giữa răng.",
+                    "audioFile": "/audios/ElevenLabs_Emma_this.mp3",
+                    "duration": 3.5,
+                    "language": "vi",
+                    "phoneme": "th"
+                }
+            ]
+        },
+        {
+            "id": "system",
+            "title": "Hệ thống",
+            "description": "Thông báo hệ thống và trạng thái",
+            "dialogues": [
+                {
+                    "id": "loading",
+                    "text": "Đang tải dữ liệu... Vui lòng chờ một chút.",
+                    "audioFile": "/audios/ElevenLabs_Liam_click.mp3",
+                    "duration": 2.5,
+                    "language": "vi",
+                    "type": "system"
+                },
+                {
+                    "id": "ready",
+                    "text": "Hệ thống đã sẵn sàng! Bạn có thể bắt đầu tương tác với tôi.",
+                    "audioFile": "/audios/ElevenLabs_Emma_bump.mp3",
+                    "duration": 4.2,
+                    "language": "vi",
+                    "type": "system"
+                },
+                {
+                    "id": "error",
+                    "text": "Xin lỗi, đã xảy ra lỗi. Hãy thử lại sau.",
+                    "audioFile": "/audios/ElevenLabs_Liam_bump.mp3",
+                    "duration": 3.1,
+                    "language": "vi",
+                    "type": "system"
+                }
+            ]
+        }
+    ],
+    "metadata": {
+        "version": "1.0.0",
+        "created": "2025-11-18",
+        "description": "Bộ sưu tập đoạn hội thoại cho AI Avatar với wawa-lipsync",
+        "total_dialogues": 32,
+        "languages": [
+            "vi"
+        ],
+        "categories": [
+            "greeting",
+            "introduction",
+            "emotions",
+            "storytelling",
+            "educational",
+            "interactive",
+            "pronunciation",
+            "system"
+        ],
+        "audio_formats": [
+            "mp3"
+        ],
+        "usage": {
+            "example": {
+                "javascript": "fetch('./dialogues.json').then(response => response.json()).then(data => { const dialogue = data.conversations[0].dialogues[0]; console.log(dialogue.text); });"
+            }
+        }
+    }
+}
