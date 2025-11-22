@@ -183,49 +183,19 @@ const ChatInterview = () => {
         console.log('⏹️ Dừng ghi âm');
     };
 
-    // Send message to Gemini API
-    const sendToGemini = async (userMessage) => {
+    // Call N8N webhook directly with messageToProcess
+    const callN8nWebhook = async (messageToProcess) => {
         try {
-            setIsProcessing(true);
+            console.log('🔗 Gọi N8N webhook trực tiếp với message:', messageToProcess);
 
-            // Try direct API call first as fallback
-            const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyB3tf_oDci1C63z8wfHPq15MmW9MalH8I0';
-
-            // Create context for the interview
-            const interviewPrompt = `
-                Bạn là một AI Interview Assistant chuyên nghiệp tên là Maya. Hãy phản hồi một cách tự nhiên, thân thiện và chuyên nghiệp.
-                
-                Ngữ cảnh phỏng vấn hiện tại:
-                - Tên ứng viên: ${interviewContext.candidateName || 'chưa biết'}
-                - Vị trí ứng tuyển: ${interviewContext.position || 'chưa biết'}
-                - Kinh nghiệm: ${interviewContext.experience || 'chưa biết'}
-                - Chủ đề hiện tại: ${interviewContext.currentTopic}
-                
-                Lịch sử trò chuyện gần đây:
-                ${messages.slice(-3).map(m => `${m.sender}: ${m.text}`).join('\n')}
-                
-                Tin nhắn của ứng viên: "${userMessage}"
-                
-                Hướng dẫn:
-                - Trả lời ngắn gọn (dưới 100 từ), rõ ràng và có tính tương tác
-                - Nếu ứng viên cung cấp thông tin cá nhân, hãy ghi nhớ và phản hồi tích cực
-                - Đặt câu hỏi tiếp theo phù hợp với ngữ cảnh phỏng vấn
-                - Sử dụng tiếng Việt tự nhiên, thân thiện
-                - Tập trung vào việc tìm hiểu kỹ năng, kinh nghiệm và động cơ của ứng viên
-            `;
-
-            // Try with direct fetch to v1 API
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
+            const response = await fetch('https://carreer-path.app.n8n.cloud/webhook-test/send', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: interviewPrompt
-                        }]
-                    }]
+                    messageToProcess: messageToProcess,
+                    timestamp: new Date().toISOString()
                 })
             });
 
@@ -234,11 +204,79 @@ const ChatInterview = () => {
             }
 
             const data = await response.json();
-            const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Xin lỗi, tôi không thể xử lý yêu cầu của bạn lúc này.';
+            console.log('✅ N8N direct response:', data);
+
+            return data;
+        } catch (error) {
+            console.error('❌ Error calling N8N webhook directly:', error);
+            throw error;
+        }
+    };
+
+    // Send message to webhook
+    const sendToGemini = async (userMessage) => {
+        try {
+            setIsProcessing(true);
+
+            // Prepare interview context data
+            // const webhookPayload = {
+            //     userMessage: userMessage,
+            //     candidateName: interviewContext.candidateName || 'chưa biết',
+            //     position: interviewContext.position || 'chưa biết',
+            //     experience: interviewContext.experience || 'chưa biết',
+            //     currentTopic: interviewContext.currentTopic,
+            //     conversationHistory: messages.slice(-3).map(m => ({
+            //         sender: m.sender,
+            //         text: m.text
+            //     }))
+            // };
+
+            // console.log('📤 Gửi yêu cầu đến backend:', webhookPayload);
+
+            // Option 1: Dùng mock webhook (testing, không cần n8n)
+            const useMockWebhook = false; // ← Đổi thành false để dùng n8n thực
+            const useDirectN8n = true; // ← Đặt true để gọi N8N trực tiếp
+
+            // Auto-detect backend URL
+            let backendUrl;
+            if (useDirectN8n) {
+                backendUrl = 'https://carreer-path.app.n8n.cloud/webhook/send';
+            }
+            // else if (useMockWebhook) {
+            //     backendUrl = 'http://localhost:3000/call-n8n-mock';
+            // } else {
+            //     backendUrl = window.location.hostname === 'localhost'
+            //         ? 'http://localhost:3000/call-n8n'
+            //         : 'https://interview-backend-proxy.onrender.com/call-n8n';
+            // }
+
+            console.log(`📡 Using endpoint: ${backendUrl}`);
+            console.log(`📡 Using userMessage: ${userMessage}`);
+            // Send to backend proxy or N8N directly
+            const response = await fetch(backendUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userMessage: userMessage
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ Backend response:', data);
+
+            // Extract AI response from backend response
+            const aiResponse = data.output ||
+                'Xin lỗi, tôi không thể xử lý yêu cầu của bạn lúc này.';
 
             return aiResponse;
         } catch (error) {
-            console.error('❌ Error calling Gemini AI:', error);
+            console.error('❌ Error calling webhook:', error);
 
             // Fallback response if API fails
             const fallbackResponses = [
