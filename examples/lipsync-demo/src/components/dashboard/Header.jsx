@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Logo from '../Logo';
 
 const Header = () => {
     return (
@@ -8,12 +9,7 @@ const Header = () => {
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
                     <div className="flex items-center space-x-3">
-                        <Link to="/dashboard" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-                            <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-lg">T1</span>
-                            </div>
-                            <span className="text-xl font-semibold text-gray-900">Career Compass</span>
-                        </Link>
+                        <Logo to="/dashboard" />
                     </div>
 
                     {/* Navigation */}

@@ -5,25 +5,13 @@ import { Experience } from "./Experience";
 import { Visualizer } from "./Visualizer";
 import { DialoguePlayer } from "./DialoguePlayer";
 import { TextToSpeech } from "./TextToSpeech";
+import ChatInterview from "./ChatInterview";
 
 const examples = [
-  {
-    label: "Visualizer",
-    href: "#",
-  },
-  {
-    label: "3D model",
-    href: "#model",
-  },
-  {
-    label: "Dialogues",
-    href: "#dialogues",
-  },
-  {
-    label: "Text-to-Speech",
-    href: "#tts",
-  },
+
 ];
+
+
 
 export const UI = () => {
   const [currentHash, setCurrentHash] = useState(
@@ -46,18 +34,6 @@ export const UI = () => {
   return (
     <section className="flex flex-col-reverse lg:flex-row overflow-hidden h-full w-full">
       <div className="p-10 lg:max-w-2xl overflow-y-auto">
-        <a
-          className="pointer-events-auto select-none opacity-0 animate-fade-in-down animation-delay-200 "
-          href="https://wawasensei.dev"
-          target="_blank"
-        >
-          <img
-            src="/images/wawasensei.png"
-            alt="Wawa Sensei logo"
-            className="w-20 h-20 object-contain"
-          />
-        </a>
-
         {/* Navigation tabs */}
         <div className="mb-6 opacity-0 animate-fade-in-down animation-delay-400">
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
@@ -74,28 +50,13 @@ export const UI = () => {
               </a>
             ))}
           </div>
-
-          {/* Dashboard Link */}
-          <div className="mt-4 text-center">
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105 text-sm font-medium"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              Đi tới Dashboard
-            </Link>
-          </div>
         </div>
 
         {/* Content based on current hash */}
-        {currentHash === "dialogues" ? (
-          <DialoguePlayer />
-        ) : currentHash === "tts" ? (
-          <TextToSpeech />
+        {currentHash === "interview" ? (
+          <ChatInterview />
         ) : (
-          <Visualizer />
+          <ChatInterview />
         )}
       </div>
       <div className="flex-1 bg-gradient-to-b from-pink-400 to-pink-200 relative">
