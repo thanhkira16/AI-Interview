@@ -6,10 +6,12 @@ export const UserCamera = () => {
     const [error, setError] = useState("");
     const [permissionStatus, setPermissionStatus] = useState("unknown");
     const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+    const [micEnabled, setMicEnabled] = useState(true);
+    const [cameraEnabled, setCameraEnabled] = useState(true);
+    const [speakerEnabled, setSpeakerEnabled] = useState(true);
     const videoRef = useRef();
 
-    // Fixed settings - no Leva controls
-    const cameraEnabled = true; // Always enabled
+    // Fixed settings - camera always shows but can be disabled
     const cameraSize = "medium";
     const cameraPosition = "bottom-right";
 
@@ -139,14 +141,42 @@ export const UserCamera = () => {
         }
     };
 
-    // Auto-start camera when component mounts
-    useEffect(() => {
-        // Small delay to ensure component is mounted
-        const timer = setTimeout(() => {
+    // Toggle camera
+    const toggleCamera = () => {
+        setCameraEnabled(!cameraEnabled);
+        if (cameraEnabled) {
+            stopCamera();
+        } else {
             if (permissionStatus === "granted") {
                 startCamera();
             } else {
                 requestCameraPermission();
+            }
+        }
+    };
+
+    // Toggle microphone (placeholder for future implementation)
+    const toggleMicrophone = () => {
+        setMicEnabled(!micEnabled);
+        console.log('🎤 Microphone toggled:', !micEnabled);
+    };
+
+    // Toggle speaker (placeholder for future implementation)
+    const toggleSpeaker = () => {
+        setSpeakerEnabled(!speakerEnabled);
+        console.log('🔊 Speaker toggled:', !speakerEnabled);
+    };
+
+    // Auto-start camera when component mounts
+    useEffect(() => {
+        // Small delay to ensure component is mounted
+        const timer = setTimeout(() => {
+            if (cameraEnabled) {
+                if (permissionStatus === "granted") {
+                    startCamera();
+                } else {
+                    requestCameraPermission();
+                }
             }
         }, 500);
 
@@ -156,7 +186,7 @@ export const UserCamera = () => {
                 stream.getTracks().forEach(track => track.stop());
             }
         };
-    }, []);
+    }, [cameraEnabled]);
 
     // Update video source when stream changes
     useEffect(() => {
@@ -165,181 +195,313 @@ export const UserCamera = () => {
         }
     }, [stream]);
 
-    // Don't render if there's an error (optional: you can remove this to always show camera area)
-    // if (error && permissionStatus === "denied") {
-    //   return null;
-    // }
-
     return (
-        <div
-            style={{
-                position: "fixed",
-                ...positionConfig[cameraPosition],
-                width: `${sizeConfig[cameraSize].width}px`,
-                height: `${sizeConfig[cameraSize].height}px`,
-                zIndex: cameraPosition === "center-overlay" ? 2000 : 1000,
-                border: "3px solid #4a9eff",
-                borderRadius: "16px",
-                overflow: "hidden",
-                boxShadow: "0 4px 16px rgba(74, 158, 255, 0.3)",
-                background: "#1a1a1a",
-                transition: "all 0.3s ease",
-            }}
-        >
-            {error ? (
-                // Error state with permission request button
-                <div
-                    style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexDirection: "column",
-                        color: "#ff6b6b",
-                        padding: "16px",
-                        textAlign: "center",
-                        fontSize: "13px",
-                    }}
-                >
-                    <div style={{ marginBottom: "12px", fontSize: "28px" }}>
-                        {permissionStatus === "denied" ? "🔒" : "⚠️"}
-                    </div>
-                    <div style={{ marginBottom: "12px", lineHeight: "1.4" }}>{error}</div>
-
-                    {(permissionStatus === "denied" || permissionStatus === "unknown") && (
-                        <button
-                            onClick={requestCameraPermission}
-                            disabled={isRequestingPermission}
-                            style={{
-                                background: isRequestingPermission
-                                    ? "rgba(74, 158, 255, 0.6)"
-                                    : "rgba(74, 158, 255, 0.8)",
-                                color: "white",
-                                border: "none",
-                                padding: "8px 16px",
-                                borderRadius: "8px",
-                                cursor: isRequestingPermission ? "wait" : "pointer",
-                                fontSize: "12px",
-                                fontWeight: "500",
-                                transition: "all 0.2s ease",
-                            }}
-                            onMouseOver={(e) => !isRequestingPermission &&
-                                (e.target.style.background = "rgba(74, 158, 255, 1)")}
-                            onMouseOut={(e) => !isRequestingPermission &&
-                                (e.target.style.background = "rgba(74, 158, 255, 0.8)")}
-                        >
-                            {isRequestingPermission ? "Requesting..." : "Request Permission"}
-                        </button>
-                    )}
-                </div>
-            ) : (
-                // Video stream
-                <>
-                    <video
-                        ref={videoRef}
-                        autoPlay
-                        playsInline
-                        muted
+        <div style={{ position: "fixed", ...positionConfig[cameraPosition], zIndex: 1000 }}>
+            {/* Camera Window */}
+            <div
+                style={{
+                    width: `${sizeConfig[cameraSize].width}px`,
+                    height: `${sizeConfig[cameraSize].height}px`,
+                    border: "3px solid #4a9eff",
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    boxShadow: "0 4px 16px rgba(74, 158, 255, 0.3)",
+                    background: "#1a1a1a",
+                    transition: "all 0.3s ease",
+                    opacity: cameraEnabled ? 1 : 0.5,
+                    marginBottom: "8px",
+                }}
+            >
+                {error && !cameraEnabled ? (
+                    // Error state with permission request button
+                    <div
                         style={{
                             width: "100%",
                             height: "100%",
-                            objectFit: "cover",
-                            transform: "scaleX(-1)", // Mirror effect
-                            background: "#000",
-                        }}
-                    />
-
-                    {/* Camera controls overlay */}
-                    <div
-                        style={{
-                            position: "absolute",
-                            bottom: "8px",
-                            left: "8px",
-                            right: "8px",
                             display: "flex",
-                            justifyContent: "space-between",
                             alignItems: "center",
+                            justifyContent: "center",
+                            flexDirection: "column",
+                            color: "#ff6b6b",
+                            padding: "16px",
+                            textAlign: "center",
+                            fontSize: "13px",
                         }}
                     >
-                        {/* Status indicator */}
-                        <div
-                            style={{
-                                background: "rgba(0, 0, 0, 0.7)",
-                                color: "white",
-                                padding: "4px 8px",
-                                borderRadius: "12px",
-                                fontSize: "12px",
-                                fontFamily: "monospace",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                            }}
-                        >
-                            <div
+                        <div style={{ marginBottom: "12px", fontSize: "28px" }}>
+                            {permissionStatus === "denied" ? "🔒" : "⚠️"}
+                        </div>
+                        <div style={{ marginBottom: "12px", lineHeight: "1.4" }}>{error}</div>
+
+                        {(permissionStatus === "denied" || permissionStatus === "unknown") && (
+                            <button
+                                onClick={requestCameraPermission}
+                                disabled={isRequestingPermission}
                                 style={{
-                                    width: "8px",
-                                    height: "8px",
-                                    borderRadius: "50%",
-                                    backgroundColor: isActive ? "#4ade80" : "#ef4444",
+                                    background: isRequestingPermission
+                                        ? "rgba(74, 158, 255, 0.6)"
+                                        : "rgba(74, 158, 255, 0.8)",
+                                    color: "white",
+                                    border: "none",
+                                    padding: "8px 16px",
+                                    borderRadius: "8px",
+                                    cursor: isRequestingPermission ? "wait" : "pointer",
+                                    fontSize: "12px",
+                                    fontWeight: "500",
+                                    transition: "all 0.2s ease",
                                 }}
-                            />
-                            {isActive ? "Live" : "Offline"}
-                        </div>
-
-                        {/* Camera info */}
-                        <div
-                            style={{
-                                background: "rgba(0, 0, 0, 0.7)",
-                                color: "white",
-                                padding: "4px 8px",
-                                borderRadius: "12px",
-                                fontSize: "11px",
-                                fontFamily: "monospace",
-                            }}
-                        >
-                            {sizeConfig[cameraSize].width}x{sizeConfig[cameraSize].height}
-                        </div>
+                                onMouseOver={(e) => !isRequestingPermission &&
+                                    (e.target.style.background = "rgba(74, 158, 255, 1)")}
+                                onMouseOut={(e) => !isRequestingPermission &&
+                                    (e.target.style.background = "rgba(74, 158, 255, 0.8)")}
+                            >
+                                {isRequestingPermission ? "Requesting..." : "Request Permission"}
+                            </button>
+                        )}
                     </div>
+                ) : !cameraEnabled ? (
+                    // Camera disabled state
+                    <div
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#888",
+                            fontSize: "48px",
+                        }}
+                    >
+                        📷
+                    </div>
+                ) : (
+                    // Video stream
+                    <>
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                transform: "scaleX(-1)", // Mirror effect
+                                background: "#000",
+                            }}
+                        />
 
-                    {/* Loading indicator when starting */}
-                    {!isActive && !error && (
+                        {/* Camera controls overlay */}
                         <div
                             style={{
                                 position: "absolute",
-                                top: "50%",
-                                left: "50%",
-                                transform: "translate(-50%, -50%)",
-                                color: "white",
-                                fontSize: "14px",
+                                bottom: "8px",
+                                left: "8px",
+                                right: "8px",
                                 display: "flex",
+                                justifyContent: "space-between",
                                 alignItems: "center",
-                                gap: "8px",
                             }}
                         >
+                            {/* Status indicator */}
                             <div
                                 style={{
-                                    width: "20px",
-                                    height: "20px",
-                                    border: "2px solid #4a9eff",
-                                    borderTop: "2px solid transparent",
-                                    borderRadius: "50%",
-                                    animation: "spin 1s linear infinite",
+                                    background: "rgba(0, 0, 0, 0.7)",
+                                    color: "white",
+                                    padding: "4px 8px",
+                                    borderRadius: "12px",
+                                    fontSize: "12px",
+                                    fontFamily: "monospace",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
                                 }}
-                            />
-                            Starting...
+                            >
+                                <div
+                                    style={{
+                                        width: "8px",
+                                        height: "8px",
+                                        borderRadius: "50%",
+                                        backgroundColor: isActive ? "#4ade80" : "#ef4444",
+                                    }}
+                                />
+                                {isActive ? "Live" : "Offline"}
+                            </div>
+
+                            {/* Camera info */}
+                            <div
+                                style={{
+                                    background: "rgba(0, 0, 0, 0.7)",
+                                    color: "white",
+                                    padding: "4px 8px",
+                                    borderRadius: "12px",
+                                    fontSize: "11px",
+                                    fontFamily: "monospace",
+                                }}
+                            >
+                                {sizeConfig[cameraSize].width}x{sizeConfig[cameraSize].height}
+                            </div>
                         </div>
+
+                        {/* Loading indicator when starting */}
+                        {!isActive && !error && (
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                    color: "white",
+                                    fontSize: "14px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: "20px",
+                                        height: "20px",
+                                        border: "2px solid #4a9eff",
+                                        borderTop: "2px solid transparent",
+                                        borderRadius: "50%",
+                                        animation: "spin 1s linear infinite",
+                                    }}
+                                />
+                                Starting...
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            {/* Control Buttons */}
+            <div
+                style={{
+                    display: "flex",
+                    gap: "8px",
+                    justifyContent: "center",
+                }}
+            >
+                {/* Microphone Button */}
+                <button
+                    onClick={toggleMicrophone}
+                    style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "12px",
+                        border: "none",
+                        background: micEnabled ? "#4ade80" : "#ef4444",
+                        color: "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "18px",
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                        position: "relative",
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = "scale(1.05)"}
+                    onMouseOut={(e) => e.target.style.transform = "scale(1)"}
+                    title={micEnabled ? "Tắt microphone" : "Bật microphone"}
+                >
+                    🎤
+                    {!micEnabled && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                width: "2px",
+                                height: "24px",
+                                background: "white",
+                                transform: "rotate(45deg)",
+                            }}
+                        />
                     )}
-                </>
-            )}
+                </button>
+
+                {/* Camera Button */}
+                <button
+                    onClick={toggleCamera}
+                    style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "12px",
+                        border: "none",
+                        background: cameraEnabled ? "#4ade80" : "#ef4444",
+                        color: "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "18px",
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                        position: "relative",
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = "scale(1.05)"}
+                    onMouseOut={(e) => e.target.style.transform = "scale(1)"}
+                    title={cameraEnabled ? "Tắt camera" : "Bật camera"}
+                >
+                    📷
+                    {!cameraEnabled && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                width: "2px",
+                                height: "24px",
+                                background: "white",
+                                transform: "rotate(45deg)",
+                            }}
+                        />
+                    )}
+                </button>
+
+                {/* Speaker Button */}
+                <button
+                    onClick={toggleSpeaker}
+                    style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "12px",
+                        border: "none",
+                        background: speakerEnabled ? "#4ade80" : "#ef4444",
+                        color: "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "18px",
+                        transition: "all 0.2s ease",
+                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                        position: "relative",
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = "scale(1.05)"}
+                    onMouseOut={(e) => e.target.style.transform = "scale(1)"}
+                    title={speakerEnabled ? "Tắt loa" : "Bật loa"}
+                >
+                    🔊
+                    {!speakerEnabled && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                width: "2px",
+                                height: "24px",
+                                background: "white",
+                                transform: "rotate(45deg)",
+                            }}
+                        />
+                    )}
+                </button>
+            </div>
 
             {/* CSS Animation for loading spinner */}
             <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `}</style>
         </div>
     );
 };
