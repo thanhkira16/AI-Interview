@@ -297,16 +297,20 @@ const ChatInterview = () => {
 
             utterance.onstart = () => {
                 console.log('🔊 Speech synthesis started');
-                // Start fake lipsync on utterance.onstart (not before)
-                console.log('ℹ️ Bắt đầu fake lipsync từ onstart event');
-                startDirectVisemeUpdate(text, speechRate);
+                console.log('ℹ️ Fake lipsync đã được khởi tạo trước đó');
             };
 
             utterance.onend = () => {
                 console.log('✅ Speech synthesis completed');
                 setIsSpeaking(false);
                 // Stop fake lipsync when speech ends
-                stopDirectVisemeUpdate();
+                if (fakeLipsyncRef.current) {
+                    clearInterval(fakeLipsyncRef.current);
+                    fakeLipsyncRef.current = null;
+                }
+                if (lipsyncManager) {
+                    lipsyncManager.viseme = VISEMES.sil;
+                }
             };
 
             utterance.onerror = (event) => {
@@ -317,6 +321,10 @@ const ChatInterview = () => {
 
             speechUtteranceRef.current = utterance;
             speechSynthesis.speak(utterance);
+
+            // Start direct viseme update immediately (AFTER speak, not in onstart)
+            console.log('🎯 Bắt đầu direct viseme update ngay lập tức...');
+            startDirectVisemeUpdate(text, speechRate);
 
         } catch (error) {
             console.error('❌ Error in speech synthesis:', error);
@@ -414,6 +422,9 @@ const ChatInterview = () => {
 
         if (lipsyncManager) {
             lipsyncManager.viseme = VISEMES.sil;
+            if (lipsyncManager.features) {
+                lipsyncManager.features.volume = 0;
+            }
             console.log('🔇 Dừng fake lipsync - Đặt về silence');
         }
     };
@@ -484,19 +495,6 @@ const ChatInterview = () => {
 
     return (
         <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-bold">🤖 AI Interview Assistant</h2>
-                        <p className="text-sm opacity-90">Cuộc phỏng vấn thông minh với AI</p>
-                    </div>
-                    <div className="text-white">
-                        <Logo to="/dashboard" textColor="text-white" />
-                    </div>
-                </div>
-            </div>
-
             {/* Chat Messages */}
             <div className="flex-1 p-4 overflow-y-auto max-h-96">
                 <div className="space-y-4">
@@ -525,7 +523,6 @@ const ChatInterview = () => {
                                     <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></div>
                                     <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full" style={{ animationDelay: '0.2s' }}></div>
                                     <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full" style={{ animationDelay: '0.4s' }}></div>
-                                    <span className="text-sm">AI đang suy nghĩ...</span>
                                 </div>
                             </div>
                         </div>
@@ -664,22 +661,6 @@ const ChatInterview = () => {
                     <span>💬 Chủ đề: {interviewContext.currentTopic}</span>
                     <span>👤 Ứng viên: {interviewContext.candidateName || 'Chưa biết'}</span>
                 </div>
-
-                {/* Debug Info */}
-                {isSpeaking && (
-                    <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                        <div className="font-semibold text-blue-800 mb-1">🔍 Lip Sync Debug:</div>
-                        <div className="grid grid-cols-2 gap-2 text-blue-700">
-                            <span>Current Viseme: {lipsyncManager?.viseme || 'N/A'}</span>
-                            <span>State: {lipsyncManager?.state || 'N/A'}</span>
-                            <span>Is Speaking: {isSpeaking ? 'Yes' : 'No'}</span>
-                            <span>Manager: {lipsyncManager ? 'Active' : 'Inactive'}</span>
-                        </div>
-                        <div className="text-blue-600 mt-1">
-                            💡 Mở Console (F12) để xem chi tiết viseme sequence
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
