@@ -11,22 +11,19 @@ export const TextToSpeech = () => {
     const [pitch, setPitch] = useState(1.0);
     const [volume, setVolume] = useState(1.0);
     const [enableFakeLipsync, setEnableFakeLipsync] = useState(true);
-    
+
     // Speech-to-Text states
     const [isRecording, setIsRecording] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
     const [recordingTime, setRecordingTime] = useState(0);
     const [selectedLanguage, setSelectedLanguage] = useState('vi-VN');
     const [transcriptionResult, setTranscriptionResult] = useState(null);
-    const [apiServerStatus, setApiServerStatus] = useState('unknown');
-    
+    const [webSpeechSupported, setWebSpeechSupported] = useState(false);
+
     const audioRef = useRef(null);
-    const mediaRecorderRef = useRef(null);
-    const mediaStreamRef = useRef(null);
-    const chunksRef = useRef([]);
     const fakeLipsyncRef = useRef(null);
     const speechUtteranceRef = useRef(null);
     const recordingTimerRef = useRef(null);
+    const speechRecognitionRef = useRef(null);
 
     // Load available voices
     useEffect(() => {
@@ -58,156 +55,159 @@ export const TextToSpeech = () => {
         };
     }, []);
 
-    // Check API server status
+    // Check Web Speech API support
     useEffect(() => {
-        const checkApiStatus = async () => {
-            try {
-                const response = await fetch('http://localhost:5000/health');
-                const data = await response.json();
-                setApiServerStatus(data.speech_client_ready ? 'ready' : 'no-credentials');
-            } catch (error) {
-                setApiServerStatus('offline');
-            }
+        const checkWebSpeechSupport = () => {
+            const isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            setWebSpeechSupported(isSupported);
+            console.log('🎤 Web Speech API supported:', isSupported);
         };
 
-        checkApiStatus();
-        const interval = setInterval(checkApiStatus, 30000); // Check every 30 seconds
-
-        return () => clearInterval(interval);
+        checkWebSpeechSupport();
     }, []);
 
-    // Speech-to-Text Functions
-    const startRecording = async () => {
+    // Live Speech Recognition (Web Speech API)
+    const startLiveRecording = async () => {
+        if (!webSpeechSupported) {
+            alert('Trình duyệt của bạn không hỗ trợ Web Speech API. Vui lòng sử dụng Chrome, Edge hoặc Safari.');
+            return;
+        }
+
         try {
-            // Request microphone permission
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    sampleRate: 16000
-                } 
-            });
-            
-            mediaStreamRef.current = stream;
-            
-            // Create MediaRecorder
-            const mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'audio/webm;codecs=opus'
-            });
-            
-            mediaRecorderRef.current = mediaRecorder;
-            chunksRef.current = [];
-            
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunksRef.current.push(event.data);
-                }
-            };
-            
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm;codecs=opus' });
-                await processRecording(audioBlob);
-                
-                // Clean up
-                if (mediaStreamRef.current) {
-                    mediaStreamRef.current.getTracks().forEach(track => track.stop());
-                    mediaStreamRef.current = null;
-                }
-            };
-            
-            // Start recording
-            mediaRecorder.start(100); // Collect data every 100ms
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+
+            speechRecognitionRef.current = recognition;
+
+            // Configure recognition
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = selectedLanguage;
+            recognition.maxAlternatives = 1;
+
             setIsRecording(true);
             setRecordingTime(0);
             setTranscriptionResult(null);
-            
+
+            let finalTranscript = '';
+            let interimTranscript = '';
+
+            recognition.onstart = () => {
+                console.log('🎤 Web Speech API bắt đầu...');
+            };
+
+            recognition.onresult = (event) => {
+                interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Update real-time transcription display
+                const currentTranscript = (finalTranscript + interimTranscript).trim();
+                setTranscriptionResult({
+                    success: true,
+                    results: [{
+                        transcript: currentTranscript,
+                        confidence: event.results[event.results.length - 1][0].confidence || 0.8,
+                        method: 'Web Speech API (Live)',
+                        interim: !event.results[event.results.length - 1].isFinal
+                    }],
+                    full_transcript: currentTranscript,
+                    live_mode: true
+                });
+
+                console.log('📝 Live transcript:', currentTranscript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('❌ Web Speech API error:', event.error);
+                setIsRecording(false);
+
+                let errorMessage = 'Lỗi nhận dạng giọng nói: ';
+                switch (event.error) {
+                    case 'no-speech':
+                        errorMessage += 'Không phát hiện giọng nói. Vui lòng nói vào microphone.';
+                        break;
+                    case 'audio-capture':
+                        errorMessage += 'Không thể truy cập microphone. Vui lòng cho phép quyền truy cập.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage += 'Quyền truy cập microphone bị từ chối.';
+                        break;
+                    case 'network':
+                        errorMessage += 'Lỗi kết nối mạng.';
+                        break;
+                    default:
+                        errorMessage += event.error;
+                }
+
+                setTranscriptionResult({ error: errorMessage });
+
+                if (recordingTimerRef.current) {
+                    clearInterval(recordingTimerRef.current);
+                    recordingTimerRef.current = null;
+                }
+            };
+
+            recognition.onend = () => {
+                console.log('⏹️ Web Speech API kết thúc');
+                setIsRecording(false);
+
+                if (recordingTimerRef.current) {
+                    clearInterval(recordingTimerRef.current);
+                    recordingTimerRef.current = null;
+                }
+
+                // Show final result with option to use text
+                if (finalTranscript.trim()) {
+                    const shouldReplace = window.confirm(
+                        `Ghi âm trực tiếp hoàn thành!\n\n"${finalTranscript.trim()}"\n\nBạn có muốn sử dụng văn bản này không?`
+                    );
+
+                    if (shouldReplace) {
+                        setText(finalTranscript.trim());
+                    }
+                }
+            };
+
             // Start timer
             recordingTimerRef.current = setInterval(() => {
                 setRecordingTime(prev => prev + 1);
             }, 1000);
-            
-            console.log('🎤 Bắt đầu ghi âm...');
-            
+
+            recognition.start();
+            console.log('🎤 Bắt đầu live recording với Web Speech API...');
+
         } catch (error) {
-            console.error('❌ Lỗi khi bắt đầu ghi âm:', error);
-            alert('Không thể truy cập microphone. Vui lòng cho phép trình duyệt sử dụng microphone.');
+            console.error('❌ Lỗi khởi tạo Web Speech API:', error);
+            alert('Không thể khởi tạo Web Speech API. Vui lòng thử lại.');
+            setIsRecording(false);
         }
     };
-    
-    const stopRecording = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop();
+
+    const stopLiveRecording = () => {
+        if (speechRecognitionRef.current) {
+            speechRecognitionRef.current.stop();
+            speechRecognitionRef.current = null;
         }
-        
+
         setIsRecording(false);
-        
+
         if (recordingTimerRef.current) {
             clearInterval(recordingTimerRef.current);
             recordingTimerRef.current = null;
         }
-        
-        console.log('⏹️ Dừng ghi âm');
+
+        console.log('⏹️ Dừng live recording');
     };
-    
-    const processRecording = async (audioBlob) => {
-        setIsProcessing(true);
-        
-        try {
-            console.log('🔄 Đang xử lý audio blob...');
-            
-            // Convert blob to base64
-            const reader = new FileReader();
-            reader.onload = async () => {
-                const audioData = reader.result;
-                
-                try {
-                    // Send to Speech-to-Text API
-                    const response = await fetch('http://localhost:5000/transcribe-blob', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            audioData: audioData,
-                            language: selectedLanguage,
-                            sampleRate: 16000
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success && result.full_transcript) {
-                        console.log('✅ Transcription thành công:', result.full_transcript);
-                        setTranscriptionResult(result);
-                        
-                        // Auto-fill text area
-                        const shouldReplace = window.confirm(
-                            `Phiên âm thành công!\n\n"${result.full_transcript}"\n\nBạn có muốn thay thế văn bản hiện tại không?`
-                        );
-                        
-                        if (shouldReplace) {
-                            setText(result.full_transcript);
-                        }
-                    } else {
-                        console.error('❌ Transcription thất bại:', result.error);
-                        setTranscriptionResult({ error: result.error || 'Không thể chuyển đổi giọng nói sang văn bản' });
-                    }
-                } catch (apiError) {
-                    console.error('❌ Lỗi API:', apiError);
-                    setTranscriptionResult({ error: 'Lỗi kết nối đến server Speech-to-Text. Vui lòng kiểm tra server có đang chạy không.' });
-                }
-            };
-            
-            reader.readAsDataURL(audioBlob);
-            
-        } catch (error) {
-            console.error('❌ Lỗi xử lý recording:', error);
-            setTranscriptionResult({ error: 'Lỗi xử lý file ghi âm' });
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-    
+
     const formatRecordingTime = (seconds) => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
@@ -424,8 +424,8 @@ export const TextToSpeech = () => {
             if (recordingTimerRef.current) {
                 clearInterval(recordingTimerRef.current);
             }
-            if (mediaStreamRef.current) {
-                mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            if (speechRecognitionRef.current) {
+                speechRecognitionRef.current.stop();
             }
         };
     }, []);
@@ -455,33 +455,24 @@ export const TextToSpeech = () => {
         <div className="p-4 bg-white rounded-lg shadow-lg space-y-6">
             <h3 className="text-xl font-bold text-gray-800">🎤 Speech-to-Text & Text-to-Speech</h3>
 
-            {/* API Server Status */}
-            <div className="p-3 rounded-md border">
-                <div className="flex items-center space-x-2">
-                    <div className={`w-3 h-3 rounded-full ${
-                        apiServerStatus === 'ready' ? 'bg-green-500' :
-                        apiServerStatus === 'no-credentials' ? 'bg-yellow-500' :
-                        'bg-red-500'
-                    }`}></div>
-                    <span className="text-sm font-medium">
-                        {apiServerStatus === 'ready' ? '✅ API Server Ready' :
-                         apiServerStatus === 'no-credentials' ? '⚠️ API Server Online (No Credentials)' :
-                         '❌ API Server Offline'}
-                    </span>
-                </div>
-                {apiServerStatus !== 'ready' && (
-                    <p className="text-xs text-gray-600 mt-1">
-                        {apiServerStatus === 'offline' 
-                            ? 'Chạy: python speech_api.py để khởi động server'
-                            : 'Cần cấu hình Google Cloud credentials trong .env'}
-                    </p>
-                )}
-            </div>
-
             {/* Speech-to-Text Section */}
             <div className="border rounded-lg p-4 bg-blue-50">
                 <h4 className="text-lg font-semibold text-blue-800 mb-3">🎙️ Ghi âm giọng nói → Văn bản</h4>
-                
+
+                {/* Web Speech API Support Status */}
+                <div className="mb-4">
+                    <div className="flex items-center space-x-2">
+                        <div className={`w-3 h-3 rounded-full ${webSpeechSupported ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <span className="text-sm font-medium">
+                            🎤 Ghi âm trực tiếp (Web Speech API): {webSpeechSupported ? 'Được hỗ trợ' : 'Không được hỗ trợ'}
+                        </span>
+                    </div>
+                    {!webSpeechSupported && (
+                        <p className="text-xs text-red-600 mt-1">
+                            ⚠️ Web Speech API không được hỗ trợ. Vui lòng sử dụng Chrome, Edge hoặc Safari.
+                        </p>
+                    )}
+                </div>
                 {/* Language Selection */}
                 <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -491,7 +482,7 @@ export const TextToSpeech = () => {
                         value={selectedLanguage}
                         onChange={(e) => setSelectedLanguage(e.target.value)}
                         className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        disabled={isRecording || isProcessing}
+                        disabled={isRecording}
                     >
                         {languageOptions.map((lang) => (
                             <option key={lang.code} value={lang.code}>
@@ -505,16 +496,16 @@ export const TextToSpeech = () => {
                 <div className="flex items-center space-x-3 mb-4">
                     {!isRecording ? (
                         <button
-                            onClick={startRecording}
-                            disabled={isProcessing || apiServerStatus !== 'ready'}
-                            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
+                            onClick={startLiveRecording}
+                            disabled={!webSpeechSupported}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
                         >
                             <span>🎤</span>
-                            <span>Bắt đầu ghi âm</span>
+                            <span>Ghi âm trực tiếp</span>
                         </button>
                     ) : (
                         <button
-                            onClick={stopRecording}
+                            onClick={stopLiveRecording}
                             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 flex items-center space-x-2"
                         >
                             <span>⏹️</span>
@@ -526,15 +517,8 @@ export const TextToSpeech = () => {
                         <div className="flex items-center space-x-2">
                             <div className="animate-pulse w-3 h-3 bg-red-500 rounded-full"></div>
                             <span className="text-sm font-medium text-red-600">
-                                Đang ghi: {formatRecordingTime(recordingTime)}
+                                Đang nghe: {formatRecordingTime(recordingTime)}
                             </span>
-                        </div>
-                    )}
-
-                    {isProcessing && (
-                        <div className="flex items-center space-x-2">
-                            <div className="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                            <span className="text-sm text-blue-600">Đang xử lý...</span>
                         </div>
                     )}
                 </div>
@@ -549,20 +533,31 @@ export const TextToSpeech = () => {
                                 </p>
                             </div>
                         ) : (
-                            <div className="p-3 bg-green-100 border border-green-300 rounded-md">
-                                <p className="text-sm font-medium text-green-700 mb-2">✅ Kết quả nhận dạng:</p>
-                                <p className="text-green-800 font-medium">"{transcriptionResult.full_transcript}"</p>
-                                {transcriptionResult.results && transcriptionResult.results[0] && (
-                                    <p className="text-xs text-green-600 mt-1">
-                                        Độ tin cậy: {(transcriptionResult.results[0].confidence * 100).toFixed(1)}%
+                            <div className={`p-3 border rounded-md ${transcriptionResult.live_mode
+                                ? 'bg-green-50 border-green-300'
+                                : 'bg-green-100 border-green-300'
+                                }`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm font-medium text-green-700">
+                                        {transcriptionResult.live_mode ? '🎤 Nhận dạng trực tiếp:' : '✅ Kết quả nhận dạng:'}
                                     </p>
+                                    {transcriptionResult.results && transcriptionResult.results[0] && (
+                                        <span className="text-xs text-green-600">
+                                            {transcriptionResult.results[0].method} |
+                                            Tin cậy: {(transcriptionResult.results[0].confidence * 100).toFixed(1)}%
+                                            {transcriptionResult.results[0].interim && ' (tạm thời)'}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-green-800 font-medium">"{transcriptionResult.full_transcript}"</p>
+                                {!transcriptionResult.live_mode && (
+                                    <button
+                                        onClick={() => setText(transcriptionResult.full_transcript)}
+                                        className="mt-2 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                                    >
+                                        📝 Sử dụng văn bản này
+                                    </button>
                                 )}
-                                <button
-                                    onClick={() => setText(transcriptionResult.full_transcript)}
-                                    className="mt-2 px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                                >
-                                    📝 Sử dụng văn bản này
-                                </button>
                             </div>
                         )}
                     </div>
@@ -572,10 +567,14 @@ export const TextToSpeech = () => {
                 <div className="mt-4 text-xs text-gray-600 bg-gray-50 p-2 rounded">
                     <p><strong>💡 Mẹo để ghi âm tốt:</strong></p>
                     <ul className="list-disc list-inside space-y-1 mt-1">
-                        <li>Nói rõ ràng và với tốc độ vừa phải</li>
-                        <li>Giảm tiếng ồn xung quanh</li>
-                        <li>Đặt micro gần miệng (khoảng 10-15cm)</li>
-                        <li>Chọn ngôn ngữ phù hợp với nội dung bạn nói</li>
+                        <li>🎤 <strong>Live Recording:</strong> Nói liên tục, hệ thống sẽ nhận dạng real-time</li>
+                        <li>⏸️ Dừng một chút giữa các câu để hệ thống xử lý</li>
+                        <li>🔄 Không cần upload file, hoạt động trực tiếp trên trình duyệt</li>
+                        <li>📱 Hoạt động offline, không phụ thuộc vào server</li>
+                        <li>🔊 Nói rõ ràng và với tốc độ vừa phải</li>
+                        <li>🔇 Giảm tiếng ồn xung quanh</li>
+                        <li>📏 Đặt micro gần miệng (khoảng 10-15cm)</li>
+                        <li>🌍 Chọn ngôn ngữ phù hợp với nội dung bạn nói</li>
                     </ul>
                 </div>
             </div>
@@ -788,14 +787,12 @@ export const TextToSpeech = () => {
                     <strong>💡 Hướng dẫn sử dụng:</strong>
                 </p>
                 <ul className="space-y-1 text-xs">
-                    <li>🎤 <strong>Speech-to-Text:</strong> Ghi âm giọng nói của bạn và chuyển đổi thành văn bản</li>
+                    <li>🎤 <strong>Speech-to-Text:</strong> Ghi âm trực tiếp giọng nói và chuyển đổi thành văn bản</li>
                     <li>🔊 <strong>Text-to-Speech:</strong> Chuyển văn bản thành giọng nói với đồng bộ môi</li>
                     <li>🤖 <strong>Fake Lipsync:</strong> Model 3D sẽ mô phỏng chuyển động môi theo nội dung</li>
                     <li>🌐 <strong>Đa ngôn ngữ:</strong> Hỗ trợ tiếng Việt, tiếng Anh và nhiều ngôn ngữ khác</li>
+                    <li>📱 <strong>Offline:</strong> Hoạt động hoàn toàn trên trình duyệt, không cần server</li>
                 </ul>
-                <p className="mt-2 text-xs">
-                    <strong>⚙️ Yêu cầu:</strong> Cần khởi động server API (python speech_api.py) và cấu hình Google Cloud credentials
-                </p>
             </div>
 
             {/* Debug Info */}
@@ -811,11 +808,7 @@ export const TextToSpeech = () => {
                         <strong>🤖 Fake Lipsync:</strong> {enableFakeLipsync ? '✅ BẬT' : '❌ TẮT'}
                     </div>
                     <div>
-                        <strong>🌐 API Server:</strong> {
-                            apiServerStatus === 'ready' ? '✅ Sẵn sàng' :
-                            apiServerStatus === 'no-credentials' ? '⚠️ Thiếu credentials' :
-                            '❌ Offline'
-                        }
+                        <strong>🎤 Web Speech API:</strong> {webSpeechSupported ? '✅ Hỗ trợ' : '❌ Không hỗ trợ'}
                     </div>
                 </div>
                 <div className="mt-2 grid grid-cols-2 gap-2">
