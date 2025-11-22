@@ -4,6 +4,7 @@ import { Loader } from "@react-three/drei";
 import { Lipsync } from "wawa-lipsync";
 import { UI } from "./components/UI";
 import Dashboard from "./components/Dashboard";
+import { UserCamera } from "./components/UserCamera";
 
 export const lipsyncManager = new Lipsync({});
 
@@ -31,6 +32,7 @@ function MainApp() {
     <>
       <Loader />
       <UI />
+      <UserCamera />
     </>
   );
 }
