@@ -4,25 +4,13 @@ import { Experience } from "./Experience";
 import { Visualizer } from "./Visualizer";
 import { DialoguePlayer } from "./DialoguePlayer";
 import { TextToSpeech } from "./TextToSpeech";
+import ChatInterview from "./ChatInterview";
 
 const examples = [
-  {
-    label: "Visualizer",
-    href: "#",
-  },
-  {
-    label: "3D model",
-    href: "#model",
-  },
-  {
-    label: "Dialogues",
-    href: "#dialogues",
-  },
-  {
-    label: "Text-to-Speech",
-    href: "#tts",
-  },
+
 ];
+
+
 
 export const UI = () => {
   const [currentHash, setCurrentHash] = useState(
@@ -45,18 +33,6 @@ export const UI = () => {
   return (
     <section className="flex flex-col-reverse lg:flex-row overflow-hidden h-full w-full">
       <div className="p-10 lg:max-w-2xl overflow-y-auto">
-        <a
-          className="pointer-events-auto select-none opacity-0 animate-fade-in-down animation-delay-200 "
-          href="https://wawasensei.dev"
-          target="_blank"
-        >
-          <img
-            src="/images/wawasensei.png"
-            alt="Wawa Sensei logo"
-            className="w-20 h-20 object-contain"
-          />
-        </a>
-
         {/* Navigation tabs */}
         <div className="mb-6 opacity-0 animate-fade-in-down animation-delay-400">
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
@@ -76,12 +52,10 @@ export const UI = () => {
         </div>
 
         {/* Content based on current hash */}
-        {currentHash === "dialogues" ? (
-          <DialoguePlayer />
-        ) : currentHash === "tts" ? (
-          <TextToSpeech />
+        {currentHash === "interview" ? (
+          <ChatInterview />
         ) : (
-          <Visualizer />
+          <ChatInterview />
         )}
       </div>
       <div className="flex-1 bg-gradient-to-b from-pink-400 to-pink-200 relative">
