@@ -1,82 +1,125 @@
-# Wawa Lipsync
 
-A **simple** and **easy-to-use** library built in TypeScript for **real-time lipsyncing with JS and web audio API**. Ideal for animating 2D/3D characters in web apps, chatbots, and games.
+# Career Compass AI
 
-The examples shows how to use the library with a 3D model in Three.js with React Three Fiber.
+> AI-Powered Virtual Career Consulting System
 
-[Live demo](https://wawa-lipsync.wawasensei.dev/) - [Video tutorial](https://youtu.be/GXU1amqvJF8)
+## 📋 Mô tả
 
-## Installation
+**Career Compass AI** là hệ thống tư vấn hướng nghiệp ảo ứng dụng trí tuệ nhân tạo, hỗ trợ người dùng định hướng nghề nghiệp thông minh, dự đoán xu hướng ngành nghề và xây dựng lộ trình phát triển phù hợp.
+
+## 🚀 Giới thiệu
+
+Nhiều sinh viên và người mới đi làm gặp khó khăn trong việc xác định mục tiêu nghề nghiệp, dẫn đến chọn sai ngành, làm trái nghề hoặc thay đổi công việc liên tục. Career Compass AI được xây dựng để giải quyết vấn đề đó bằng cách cung cấp:
+
+- ✅ Tư vấn định hướng dựa trên phân tích dữ liệu cá nhân
+- ✅ Dự đoán xu hướng thị trường lao động
+- ✅ Tạo lộ trình phát triển nghề nghiệp rõ ràng và cá nhân hóa
+
+## 💡 Vấn đề cần giải quyết
+
+Hiện tại, nhiều người đang gặp phải những thách thức sau:
+
+- 🔴 Sinh viên tốt nghiệp nhưng thiếu định hướng nghề nghiệp rõ ràng
+- 🔴 Nhiều người phải làm công việc không liên quan hoặc thay đổi công việc liên tục
+- 🔴 Thiếu lộ trình phát triển dài hạn và tư vấn cá nhân hóa
+
+## 🧩 Giải pháp của chúng tôi
+
+Career Compass AI cung cấp ba tính năng cốt lõi:
+
+### 1. 🤖 Avatar Career Advisor
+
+- Tư vấn nghề nghiệp thông qua giọng nói
+- Tương tác trực tiếp với avatar 3D
+
+### 2. 📋 Career Roadmap
+
+- Phân tích dữ liệu người dùng
+- Xây dựng lộ trình phát triển nghề nghiệp rõ ràng và phù hợp
+
+### 3. 🔮 Trend Prediction
+
+- Dự đoán xu hướng việc làm tương lai
+- Đề xuất các ngành nghề tiềm năng theo sự thay đổi của thị trường
+
+## 👨‍💻 Thành viên nhóm
+
+Dự án được phát triển bởi:
+
+- Tuấn Kiệt
+- H. Phước
+- Quốc Kiệt
+- Hoàng Thành
+
+## 📁 Cấu trúc dự án
+
+```text
+AI-Interview/
+├── ai-score-prediction/     # Module dự đoán điểm
+├── examples/                # Ví dụ và demo
+│   └── lipsync-demo/       # Demo lip-sync
+├── packages/                # Thư viện chia sẻ
+│   └── wawa-lipsync/       # Gói lip-sync
+├── logs/                    # Log files
+├── README.md               # Tài liệu này
+└── package.json            # Cấu hình npm
+```
+
+## 🛠️ Công nghệ sử dụng
+
+- **Frontend**: React, Three.js, Vite
+- **Backend**: Python, Node.js
+- **AI/ML**: PyTorch, Hugging Face
+- **Speech**: Web Audio API, Speech Recognition API
+- **3D**: Three.js, Babylon.js
+
+## 📦 Cài đặt
+
+### Yêu cầu
+
+- Node.js >= 14
+- Python >= 3.8
+- npm hoặc yarn
+
+### Hướng dẫn
+
+1. Clone repository
 
 ```bash
-npm install wawa-lipsync
+git clone <repository-url>
+cd AI-Interview
 ```
 
-or
+1. Cài đặt dependencies
 
 ```bash
-yarn add wawa-lipsync
+npm install
+pip install -r requirements.txt
 ```
 
-## Usage
+1. Chạy dự án
 
-First, import the library and create a `Lipsync` instance:
-
-```javascript
-import { Lipsync } from "wawa-lipsync";
-
-export const lipsyncManager = new Lipsync();
+```bash
+npm run dev
 ```
 
-Then, you need to connect the [HTML `<audio>` element](https://www.w3schools.com/html/html5_audio.asp) to the `lipsyncManager`:
+## 🚀 Sử dụng
 
-```javascript
-const audioElement = new Audio("path/to/your/audio/file.mp3");
+[Hướng dẫn sử dụng sẽ được cập nhật]
 
-lipsyncManager.connectAudio(audioElement);
-```
+## 📖 Tài liệu thêm
 
-The [AnalyserNode](https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode) used by the library requires the audio element to have a valid source before the connection.
+- [Hướng dẫn Speech Integration](./examples/lipsync-demo/readme/SPEECH_INTEGRATION_README.md)
+- [Hướng dẫn Speech to Text](./examples/lipsync-demo/readme/SPEECH_TO_TEXT_README.md)
 
-This will work:
+## 📝 License
 
-```javascript
-const audioElement = new Audio();
-audioElement.src = "path/to/your/audio/file.mp3";
-lipsyncManager.connectAudio(audioElement);
-```
+Xem file [LICENSE](./LICENSE) để biết thêm chi tiết.
 
-But this will not:
+## 🤝 Đóng góp
 
-```javascript
-const audioElement = new Audio();
-lipsyncManager.connectAudio(audioElement);
-```
+Chúng tôi hoan nghênh mọi đóng góp! Vui lòng tạo pull request hoặc mở issue để thảo luận.
 
-After connecting the audio element, you can start the lipsyncing process by calling the `processAudio` method at the desired interval:
+---
 
-```javascript
-const analyzeAudio = () => {
-  requestAnimationFrame(analyzeAudio);
-  lipsyncManager.processAudio();
-  const viseme = lipsyncManager.viseme;
-  // You can now use the viseme for your animation logic
-  console.log(viseme);
-};
-
-analyzeAudio();
-```
-
-## Example
-
-You can find a [complete example](https://github.com/wass08/wawa-lipsync/tree/main/examples/lipsync-demo) of how to use the library with Three.js and React Three Fiber in the `examples/lipsync-demo` directory of the repository.
-
-> If you need help, join the [Discord server](https://wawasensei.dev/discord) or open an issue on the [GitHub repository](http://github.com/wass08/wawa-lipsync).
-
-## Contributions
-
-Contributions are welcome! If you have any ideas, suggestions, or improvements, feel free to open an issue or submit a pull request on the [GitHub repository](http://github.com/wass08/wawa-lipsync).
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/wass08/wawa-lipsync/blob/main/LICENSE) for more details.
+**Cập nhật lần cuối**: November 2025
