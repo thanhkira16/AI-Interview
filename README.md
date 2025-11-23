@@ -87,7 +87,7 @@ AI-Interview/
 
 ```bash
 git clone <repository-url>
-cd AI-Interview
+cd career-compass-ai/examples/lipsync-demo
 ```
 
 1. Cài đặt dependencies
