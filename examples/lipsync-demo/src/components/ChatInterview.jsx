@@ -4,6 +4,7 @@ import { VISEMES } from 'wawa-lipsync';
 import * as THREE from 'three';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Logo from './Logo';
+import MarkdownMessage from './MarkdownMessage';
 
 const ChatInterview = () => {
     // Chat states
@@ -11,7 +12,7 @@ const ChatInterview = () => {
         {
             id: 1,
             sender: 'ai',
-            text: 'Xin chào! Tôi là AI Interview Assistant. Hãy bắt đầu cuộc phỏng vấn nhé!',
+            text: 'Xin chào! Tôi là trợ kỹ tư vấn nghề nghiệp. Hãy bắt đầu buổi tư vấn nhé!',
             timestamp: new Date()
         }
     ]);
@@ -547,7 +548,11 @@ const ChatInterview = () => {
                                     : 'bg-gray-200 text-gray-800'
                                     }`}
                             >
-                                <p className="text-sm">{message.text}</p>
+                                {message.sender === 'ai' ? (
+                                    <MarkdownMessage text={message.text} />
+                                ) : (
+                                    <p className="text-sm">{message.text}</p>
+                                )}
                                 <p className="text-xs opacity-70 mt-1">
                                     {message.timestamp.toLocaleTimeString()}
                                 </p>
