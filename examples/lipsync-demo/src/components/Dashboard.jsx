@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from './dashboard/Header';
 import WelcomeSection from './dashboard/WelcomeSection';
 import InterviewSection from './dashboard/InterviewSection';
@@ -7,6 +8,15 @@ import CreateInterview from './dashboard/CreateInterview';
 
 const Dashboard = () => {
     const [isCreateInterviewOpen, setIsCreateInterviewOpen] = useState(false);
+    const location = useLocation();
+
+    // Kiểm tra nếu có dữ liệu từ CreateInterview, hãy xử lý ở đây
+    useEffect(() => {
+        if (location.state?.interviewData) {
+            console.log('Dashboard received interview data:', location.state.interviewData);
+            // Dữ liệu sẽ được lấy ở ChatInterview thông qua location.state
+        }
+    }, [location.state]);
 
     return (
         <div className="min-h-screen bg-gray-50">

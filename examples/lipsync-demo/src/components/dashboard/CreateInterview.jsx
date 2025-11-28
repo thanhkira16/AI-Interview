@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Dropdown Component
-const Dropdown = ({ label, placeholder, icon, options = [], required = false }) => (
+const Dropdown = ({ label, placeholder, icon, options = [], required = false, value = '', onChange = () => { } }) => (
     <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
             {label}
             {label && required && <span className="text-red-500">*</span>}
         </label>
         <div className="relative">
-            <select className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 <option value="">{placeholder}</option>
                 {options.map((opt, idx) => (
                     <option key={idx} value={opt}>{opt}</option>
@@ -24,7 +28,7 @@ const Dropdown = ({ label, placeholder, icon, options = [], required = false }) 
 );
 
 // TextArea Component
-const TextArea = ({ label, placeholder, icon, required = false }) => (
+const TextArea = ({ label, placeholder, icon, required = false, value = '', onChange = () => { } }) => (
     <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
             {label}
@@ -32,6 +36,8 @@ const TextArea = ({ label, placeholder, icon, required = false }) => (
         </label>
         <div className="relative">
             <textarea
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 rows="3"
                 placeholder={placeholder}
@@ -51,13 +57,16 @@ const TextArea = ({ label, placeholder, icon, required = false }) => (
 );
 
 // Language Selector Component
-const LanguageSelector = () => (
+const LanguageSelector = ({ value = 'Tiếng Việt', onChange = () => { } }) => (
     <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
             Ngôn ngữ lúc bắt đầu
         </label>
         <div className="relative">
-            <select className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent">
                 <option>Tiếng Việt</option>
                 <option>English</option>
             </select>
@@ -87,6 +96,8 @@ const Section = ({ icon, title, children }) => (
 
 // Main Component
 const CreateInterview = ({ isOpen, onClose }) => {
+    const navigate = useNavigate();
+    const [consultationType, setConsultationType] = useState(''); // 'career' hoặc 'interview'
     const [targetAudience, setTargetAudience] = useState(''); // học sinh, sinh viên, người đi làm
     const [selectedBlock, setSelectedBlock] = useState('');
     const [blockScores, setBlockScores] = useState({}); // Store scores for selected block subjects
@@ -172,22 +183,58 @@ const CreateInterview = ({ isOpen, onClose }) => {
     };
 
     const isFormValid = () => {
-        if (targetAudience === 'học sinh') {
-            return formData.interviewName.trim() !== '';
+        if (!consultationType) return false;
+
+        // For career consultation
+        if (consultationType === 'career') {
+            return targetAudience.trim() !== '';
         }
-        // For sinh viên and người đi làm, use original validation logic
-        return formData.industry && formData.degree && formData.interviewType && formData.jobDescription && formData.interviewName;
+
+        // For interview
+        if (consultationType === 'interview') {
+            // Cho phỏng vấn ảo: chỉ cần điền interviewName
+            return formData.industry && formData.degree && formData.interviewType && formData.jobDescription && formData.interviewName;
+        }
+
+        return false;
     };
 
     const handleSubmit = () => {
-        console.log('Form submitted:', {
+        // Tạo context data dựa trên loại tư vấn
+        const interviewData = {
+            consultationType,
             targetAudience,
-            selectedBlock,
-            blockScores,
-            useCustomSubjects,
-            customSubjects,
-            formData
-        });
+            language: formData.language,
+            timestamp: new Date().toISOString()
+        };
+
+        // Tạo message đầu tiên dựa trên loại tư vấn
+        let initialMessage = '';
+
+        if (consultationType === 'career') {
+            // Tư vấn nghề nghiệp
+            initialMessage = `Xin chào! Tôi là ${targetAudience}. Tôi muốn tư vấn về lựa chọn nghề nghiệp.`;
+            interviewData.initialMessage = initialMessage;
+        } else if (consultationType === 'interview') {
+            // Phỏng vấn ảo
+            interviewData.industry = formData.industry;
+            interviewData.degree = formData.degree;
+            interviewData.interviewType = formData.interviewType;
+            interviewData.jobDescription = formData.jobDescription;
+            interviewData.interviewName = formData.interviewName;
+            interviewData.additionalInfo = formData.additionalInfo;
+
+            initialMessage = `Xin chào! Tôi sẽ phỏng vấn cho vị trí: ${formData.interviewName} trong lĩnh vực: ${formData.industry}. Bằng cấp: ${formData.degree}. Loại phỏng vấn: ${formData.interviewType}. Mô tả công việc: ${formData.jobDescription}`;
+
+            interviewData.initialMessage = initialMessage;
+        }
+
+        console.log('Form submitted:', interviewData);
+
+        // Đóng modal và điều hướng
+        onClose();
+        // Truyền dữ liệu thông qua state và navigate
+        navigate('/', { state: { interviewData, initialMessage } });
     };
 
     const handleBackdropClick = (e) => {
@@ -245,37 +292,72 @@ const CreateInterview = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="p-6">
-                    {/* Đối tượng phỏng vấn */}
+                    {/* Loại tư vấn */}
                     <Section
                         icon={<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>}
-                        title="Đối tượng phỏng vấn"
+                        title="Loại dịch vụ"
                     >
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Bạn là<span className="text-red-500">*</span>
-                            </label>
-                            <div className="space-y-3">
-                                {['học sinh', 'sinh viên', 'người đi làm'].map((option) => (
-                                    <label key={option} className="flex items-center space-x-3 cursor-pointer">
-                                        <input
-                                            type="radio"
-                                            name="targetAudience"
-                                            value={option}
-                                            checked={targetAudience === option}
-                                            onChange={(e) => setTargetAudience(e.target.value)}
-                                            className="w-4 h-4 text-green-500 focus:ring-green-500"
-                                        />
-                                        <span className="text-sm text-gray-700 capitalize">{option}</span>
-                                    </label>
-                                ))}
-                            </div>
+                        <div className="space-y-3">
+                            {['career', 'interview'].map((option) => (
+                                <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="consultationType"
+                                        value={option}
+                                        checked={consultationType === option}
+                                        onChange={(e) => {
+                                            setConsultationType(e.target.value);
+                                            // Reset other fields when changing type
+                                            setTargetAudience('');
+                                            setSelectedBlock('');
+                                            setBlockScores({});
+                                        }}
+                                        className="w-4 h-4 text-green-500 focus:ring-green-500"
+                                    />
+                                    <span className="text-sm text-gray-700 capitalize">
+                                        {option === 'career' ? 'Tư vấn nghề nghiệp' : 'Phỏng vấn ảo'}
+                                    </span>
+                                </label>
+                            ))}
                         </div>
                     </Section>
 
-                    {/* Khối học - chỉ hiển thị cho học sinh */}
-                    {targetAudience === 'học sinh' && (
+                    {/* Đối tượng phỏng vấn - chỉ hiển thị cho tư vấn nghề nghiệp */}
+                    {consultationType === 'career' && (
+                        <Section
+                            icon={<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>}
+                            title="Đối tượng"
+                        >
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Bạn là<span className="text-red-500">*</span>
+                                </label>
+                                <div className="space-y-3">
+                                    {['học sinh', 'sinh viên', 'người đi làm'].map((option) => (
+                                        <label key={option} className="flex items-center space-x-3 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="targetAudience"
+                                                value={option}
+                                                checked={targetAudience === option}
+                                                onChange={(e) => setTargetAudience(e.target.value)}
+                                                className="w-4 h-4 text-green-500 focus:ring-green-500"
+                                            />
+                                            <span className="text-sm text-gray-700 capitalize">{option}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </Section>
+                    )}
+
+
+                    {/* Khối học - chỉ hiển thị cho học sinh khi chọn phỏng vấn */}
+                    {consultationType === 'interview' && targetAudience === 'học sinh' && (
                         <Section
                             icon={<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -417,8 +499,8 @@ const CreateInterview = ({ isOpen, onClose }) => {
                         </Section>
                     )}
 
-                    {/* Thông tin chung - ẩn cho học sinh */}
-                    {targetAudience !== 'học sinh' && (
+                    {/* Thông tin chung - hiển thị khi chọn phỏng vấn */}
+                    {consultationType === 'interview' && (
                         <Section
                             icon={<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -431,12 +513,16 @@ const CreateInterview = ({ isOpen, onClose }) => {
                                     placeholder="Chọn ngành nghề"
                                     options={['Công nghệ thông tin', 'Kinh doanh', 'Marketing', 'Kế toán', 'Nhân sự']}
                                     required={true}
+                                    value={formData.industry}
+                                    onChange={(val) => setFormData({ ...formData, industry: val })}
                                 />
                                 <Dropdown
                                     label="Bằng cấp"
                                     placeholder="Chọn độ khó"
                                     options={['Thực tập sinh', 'Nhân viên', 'Chuyên viên', 'Quản lý', 'Giám đốc']}
                                     required={true}
+                                    value={formData.degree}
+                                    onChange={(val) => setFormData({ ...formData, degree: val })}
                                 />
                             </div>
 
@@ -445,6 +531,8 @@ const CreateInterview = ({ isOpen, onClose }) => {
                                 placeholder="Chọn loại phỏng vấn"
                                 options={['Phỏng vấn kỹ thuật', 'Phỏng vấn hành vi', 'Phỏng vấn tổng hợp']}
                                 required={true}
+                                value={formData.interviewType}
+                                onChange={(val) => setFormData({ ...formData, interviewType: val })}
                             />
 
                             <TextArea
@@ -452,36 +540,47 @@ const CreateInterview = ({ isOpen, onClose }) => {
                                 placeholder="Nhập mô tả về vị trí công việc"
                                 icon={true}
                                 required={true}
+                                value={formData.jobDescription}
+                                onChange={(val) => setFormData({ ...formData, jobDescription: val })}
                             />
                         </Section>
-                    )}                    {/* Thông tin khác */}
-                    <Section
-                        icon={<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>}
-                        title="Thông tin khác"
-                    >
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Tên buổi phỏng vấn<span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.interviewName}
-                                onChange={(e) => setFormData({ ...formData, interviewName: e.target.value })}
-                                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                                placeholder="Nhập tên buổi phỏng vấn"
+                    )}
+
+                    {/* Thông tin khác */}
+                    {consultationType === 'interview' && (
+                        <Section
+                            icon={<svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>}
+                            title="Thông tin khác"
+                        >
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Tên buổi phỏng vấn<span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.interviewName}
+                                    onChange={(e) => setFormData({ ...formData, interviewName: e.target.value })}
+                                    className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    placeholder="Nhập tên buổi phỏng vấn"
+                                />
+                            </div>
+
+                            <LanguageSelector
+                                value={formData.language}
+                                onChange={(val) => setFormData({ ...formData, language: val })}
                             />
-                        </div>
 
-                        <LanguageSelector />
-
-                        <TextArea
-                            label="Thông tin khác"
-                            placeholder="Nhập thông tin khác về buổi phỏng vấn"
-                            required={false}
-                        />
-                    </Section>
+                            <TextArea
+                                label="Thông tin khác"
+                                placeholder="Nhập thông tin khác về buổi phỏng vấn"
+                                required={false}
+                                value={formData.additionalInfo}
+                                onChange={(val) => setFormData({ ...formData, additionalInfo: val })}
+                            />
+                        </Section>
+                    )}
 
                     {/* Submit Button */}
                     <button

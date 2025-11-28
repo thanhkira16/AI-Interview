@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { lipsyncManager } from '../App';
 import { VISEMES } from 'wawa-lipsync';
 import * as THREE from 'three';
@@ -7,6 +8,9 @@ import Logo from './Logo';
 import MarkdownMessage from './MarkdownMessage';
 
 const ChatInterview = () => {
+    const location = useLocation();
+    const [interviewData, setInterviewData] = useState(null);
+
     // Chat states
     const [messages, setMessages] = useState([
         {
@@ -53,6 +57,39 @@ const ChatInterview = () => {
         { code: 'en-US', name: 'English (US)' },
         { code: 'en-GB', name: 'English (UK)' },
     ];
+
+    // Xử lý dữ liệu từ CreateInterview
+    useEffect(() => {
+        if (location.state?.interviewData) {
+            const data = location.state.interviewData;
+            setInterviewData(data);
+            console.log('📋 Received interview data:', data);
+
+            // Cập nhật ngôn ngữ nếu có
+            if (data.language === 'English') {
+                setSelectedLanguage('en-US');
+            }
+
+            // Nếu có initialMessage, gửi nó tới AI
+            if (data.initialMessage) {
+                console.log('📤 Sending initial message to AI:', data.initialMessage);
+                // Tạo user message
+                const userMessage = {
+                    id: Date.now(),
+                    sender: 'user',
+                    text: data.initialMessage,
+                    timestamp: new Date()
+                };
+                setMessages(prev => [...prev, userMessage]);
+
+                // Gửi tới AI N8N
+                handleSendToN8N(data.initialMessage, data);
+            }
+
+            // Xóa state để tránh lặp lại
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state?.interviewData]);
 
     // Load available voices
     useEffect(() => {
@@ -211,6 +248,64 @@ const ChatInterview = () => {
         } catch (error) {
             console.error('❌ Error calling N8N webhook directly:', error);
             throw error;
+        }
+    };
+
+    // Gửi message tới N8N từ CreateInterview
+    const handleSendToN8N = async (userMessage, data) => {
+        try {
+            setIsProcessing(true);
+            console.log('📤 Sending initial interview message to N8N:', userMessage);
+
+            // Tạo payload với đầy đủ thông tin
+            const payload = {
+                userMessage: userMessage,
+                interviewData: data,
+                timestamp: new Date().toISOString()
+            };
+
+            const response = await fetch('https://carreer-path.app.n8n.cloud/webhook/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('✅ N8N response:', result);
+
+            // Thêm AI response vào messages
+            const aiResponse = result.output || 'Cảm ơn bạn đã chia sẻ thông tin!';
+            const aiMessage = {
+                id: Date.now() + 1,
+                sender: 'ai',
+                text: aiResponse,
+                timestamp: new Date()
+            };
+
+            setMessages(prev => [...prev, aiMessage]);
+
+            // Phát âm thanh
+            await speakText(aiResponse);
+        } catch (error) {
+            console.error('❌ Error sending to N8N:', error);
+            // Fallback response
+            const fallbackResponse = 'Cảm ơn bạn đã chia sẻ thông tin! Hãy kể thêm về bản thân bạn nhé.';
+            const aiMessage = {
+                id: Date.now() + 1,
+                sender: 'ai',
+                text: fallbackResponse,
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, aiMessage]);
+            await speakText(fallbackResponse);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
