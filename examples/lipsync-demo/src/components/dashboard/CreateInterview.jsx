@@ -110,7 +110,8 @@ const CreateInterview = ({ isOpen, onClose }) => {
         jobDescription: '',
         language: 'Tiếng Việt',
         additionalInfo: '',
-        interviewName: ''
+        interviewName: '',
+        duration: '' // 5, 10, or 30 minutes
     });
 
     // Subject blocks data
@@ -192,8 +193,8 @@ const CreateInterview = ({ isOpen, onClose }) => {
 
         // For interview
         if (consultationType === 'interview') {
-            // Cho phỏng vấn ảo: chỉ cần điền interviewName
-            return formData.industry && formData.degree && formData.interviewType && formData.jobDescription && formData.interviewName;
+            // Cho phỏng vấn ảo: cần điền đủ thông tin bao gồm duration
+            return formData.industry && formData.degree && formData.interviewType && formData.jobDescription && formData.interviewName && formData.duration;
         }
 
         return false;
@@ -223,6 +224,7 @@ const CreateInterview = ({ isOpen, onClose }) => {
             interviewData.jobDescription = formData.jobDescription;
             interviewData.interviewName = formData.interviewName;
             interviewData.additionalInfo = formData.additionalInfo;
+            interviewData.duration = parseInt(formData.duration); // duration in minutes
 
             initialMessage = `Xin chào! Tôi sẽ phỏng vấn cho vị trí: ${formData.interviewName} trong lĩnh vực: ${formData.industry}. Bằng cấp: ${formData.degree}. Loại phỏng vấn: ${formData.interviewType}. Mô tả công việc: ${formData.jobDescription}`;
 
@@ -566,6 +568,15 @@ const CreateInterview = ({ isOpen, onClose }) => {
                                     placeholder="Nhập tên buổi phỏng vấn"
                                 />
                             </div>
+
+                            <Dropdown
+                                label="Thời lượng buổi phỏng vấn"
+                                placeholder="Chọn thời lượng"
+                                options={['1', '5', '10', '30']}
+                                required={true}
+                                value={formData.duration}
+                                onChange={(val) => setFormData({ ...formData, duration: val })}
+                            />
 
                             <LanguageSelector
                                 value={formData.language}

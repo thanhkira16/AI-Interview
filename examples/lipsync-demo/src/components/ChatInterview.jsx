@@ -23,6 +23,13 @@ const ChatInterview = () => {
     const [currentMessage, setCurrentMessage] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Timer states for interviews
+    const [timeLeft, setTimeLeft] = useState(0); // in seconds
+    const [isInterviewActive, setIsInterviewActive] = useState(false);
+    const [isInterviewEnded, setIsInterviewEnded] = useState(false);
+    const [summary, setSummary] = useState('');
+    const timerRef = useRef(null);
+
     // Speech states
     const [isRecording, setIsRecording] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -70,6 +77,14 @@ const ChatInterview = () => {
                 setSelectedLanguage('en-US');
             }
 
+            // Initialize timer for interviews
+            if (data.consultationType === 'interview' && data.duration) {
+                const durationInSeconds = data.duration * 60; // Convert minutes to seconds
+                setTimeLeft(durationInSeconds);
+                setIsInterviewActive(true);
+                console.log(`⏱️ Interview timer started: ${data.duration} minutes`);
+            }
+
             // Nếu có initialMessage, gửi nó tới AI
             if (data.initialMessage) {
                 console.log('📤 Sending initial message to AI:', data.initialMessage);
@@ -90,6 +105,31 @@ const ChatInterview = () => {
             window.history.replaceState({}, document.title);
         }
     }, [location.state?.interviewData]);
+
+    // Timer effect for interviews
+    useEffect(() => {
+        if (!isInterviewActive || isInterviewEnded) return;
+
+        timerRef.current = setInterval(() => {
+            setTimeLeft(prev => {
+                if (prev <= 1) {
+                    // Time's up - end interview and get summary
+                    setIsInterviewActive(false);
+                    setIsInterviewEnded(true);
+                    clearInterval(timerRef.current);
+                    handleInterviewEnd();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        };
+    }, [isInterviewActive, isInterviewEnded]);
 
     // Load available voices
     useEffect(() => {
@@ -221,6 +261,99 @@ const ChatInterview = () => {
         console.log('⏹️ Dừng ghi âm');
     };
 
+    // Format time display
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Handle interview end - collect Q&A and send to Gemini for summary
+    const handleInterviewEnd = async () => {
+        try {
+            console.log('⏱️ Interview time ended. Collecting Q&A and generating summary...');
+
+            // Collect all Q&A from messages
+            const qaList = [];
+            for (let i = 0; i < messages.length; i++) {
+                const msg = messages[i];
+                if (msg.sender === 'user' && i + 1 < messages.length) {
+                    const nextMsg = messages[i + 1];
+                    if (nextMsg.sender === 'ai') {
+                        qaList.push({
+                            question: msg.text,
+                            answer: nextMsg.text
+                        });
+                    }
+                }
+            }
+
+            console.log('📝 Q&A collected:', qaList);
+
+            // Build prompt for Gemini
+            const qaText = qaList.map((qa, idx) => 
+                `Câu hỏi ${idx + 1}: ${qa.question}\nCâu trả lời: ${qa.answer}`
+            ).join('\n\n');
+
+            const geminiPrompt = `Bạn là một chuyên gia phỏng vấn. Hãy tóm tắt và nhận xét buổi phỏng vấn dựa trên Q&A sau:
+
+Thông tin buổi phỏng vấn:
+- Vị trí: ${interviewData?.interviewName || 'N/A'}
+- Lĩnh vực: ${interviewData?.industry || 'N/A'}
+- Loại phỏng vấn: ${interviewData?.interviewType || 'N/A'}
+- Độ khó: ${interviewData?.degree || 'N/A'}
+
+Các câu hỏi và câu trả lời:
+${qaText}
+
+Vui lòng cung cấp:
+1. Tóm tắt buổi phỏng vấn
+2. Điểm mạnh của ứng viên
+3. Điểm yếu cần cải thiện
+4. Nhận xét tổng thể
+5. Đánh giá (điểm số từ 1-10)
+
+Hãy viết bằng tiếng Việt, rõ ràng và có cấu trúc.`;
+
+            // Call Gemini API
+            const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+            if (!apiKey) {
+                throw new Error('VITE_GEMINI_API_KEY not found in environment variables');
+            }
+
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+            const result = await model.generateContent(geminiPrompt);
+            const summaryText = result.response.text();
+
+            console.log('✅ Summary from Gemini:', summaryText);
+            setSummary(summaryText);
+
+            // Add summary as AI message
+            const summaryMessage = {
+                id: Date.now(),
+                sender: 'ai',
+                text: `## 📊 Tóm tắt và nhận xét buổi phỏng vấn\n\n${summaryText}`,
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, summaryMessage]);
+
+            // Optionally speak the summary
+            // await speakText(summaryText);
+
+        } catch (error) {
+            console.error('❌ Error generating interview summary:', error);
+            const errorMessage = {
+                id: Date.now(),
+                sender: 'ai',
+                text: `❌ Lỗi khi tạo tóm tắt: ${error.message}`,
+                timestamp: new Date()
+            };
+            setMessages(prev => [...prev, errorMessage]);
+        }
+    };
+
     // Call N8N webhook directly with messageToProcess
     const callN8nWebhook = async (messageToProcess) => {
         try {
@@ -257,8 +390,12 @@ const ChatInterview = () => {
             setIsProcessing(true);
             console.log('📤 Sending initial interview message to N8N:', userMessage);
 
+            // Determine type: career (1) or interview (0)
+            const type = data.consultationType === 'career' ? '1' : '0';
+
             // Tạo payload với đầy đủ thông tin
             const payload = {
+                type: type,
                 userMessage: userMessage,
                 interviewData: data,
                 timestamp: new Date().toISOString()
@@ -279,10 +416,11 @@ const ChatInterview = () => {
             const result = await response.json();
             console.log('✅ N8N response:', result);
 
-            // Thêm AI response vào messages
+            // Thêm AI response vào messages với unique ID
             const aiResponse = result.output || 'Cảm ơn bạn đã chia sẻ thông tin!';
+            const messageId = Date.now() + Math.random();
             const aiMessage = {
-                id: Date.now() + 1,
+                id: messageId,
                 sender: 'ai',
                 text: aiResponse,
                 timestamp: new Date()
@@ -296,8 +434,9 @@ const ChatInterview = () => {
             console.error('❌ Error sending to N8N:', error);
             // Fallback response
             const fallbackResponse = 'Cảm ơn bạn đã chia sẻ thông tin! Hãy kể thêm về bản thân bạn nhé.';
+            const messageId = Date.now() + Math.random();
             const aiMessage = {
-                id: Date.now() + 1,
+                id: messageId,
                 sender: 'ai',
                 text: fallbackResponse,
                 timestamp: new Date()
@@ -314,48 +453,26 @@ const ChatInterview = () => {
         try {
             setIsProcessing(true);
 
-            // Prepare interview context data
-            // const webhookPayload = {
-            //     userMessage: userMessage,
-            //     candidateName: interviewContext.candidateName || 'chưa biết',
-            //     position: interviewContext.position || 'chưa biết',
-            //     experience: interviewContext.experience || 'chưa biết',
-            //     currentTopic: interviewContext.currentTopic,
-            //     conversationHistory: messages.slice(-3).map(m => ({
-            //         sender: m.sender,
-            //         text: m.text
-            //     }))
-            // };
+            // Determine type: career (1) or interview (0)
+            const type = interviewData?.consultationType === 'career' ? '1' : '0';
 
-            // console.log('📤 Gửi yêu cầu đến backend:', webhookPayload);
-
-            // Option 1: Dùng mock webhook (testing, không cần n8n)
-            const useMockWebhook = false; // ← Đổi thành false để dùng n8n thực
-            const useDirectN8n = true; // ← Đặt true để gọi N8N trực tiếp
-
-            // Auto-detect backend URL
-            let backendUrl;
-            if (useDirectN8n) {
-                backendUrl = 'https://carreer-path.app.n8n.cloud/webhook/send';
-            }
-            // else if (useMockWebhook) {
-            //     backendUrl = 'http://localhost:3000/call-n8n-mock';
-            // } else {
-            //     backendUrl = window.location.hostname === 'localhost'
-            //         ? 'http://localhost:3000/call-n8n'
-            //         : 'https://interview-backend-proxy.onrender.com/call-n8n';
-            // }
+            const useDirectN8n = true;
+            let backendUrl = 'https://carreer-path.app.n8n.cloud/webhook/send';
 
             console.log(`📡 Using endpoint: ${backendUrl}`);
             console.log(`📡 Using userMessage: ${userMessage}`);
-            // Send to backend proxy or N8N directly
+            console.log(`📡 Using type: ${type}`);
+            
+            // Send to N8N with type field
             const response = await fetch(backendUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userMessage: userMessage
+                    type: type,
+                    userMessage: userMessage,
+                    interviewData: interviewData
                 })
             });
 
@@ -567,8 +684,11 @@ const ChatInterview = () => {
     const sendMessage = async () => {
         if (!currentMessage.trim()) return;
 
+        // Create unique ID
+        const messageId = Date.now() + Math.random();
+
         const userMessage = {
-            id: Date.now(),
+            id: messageId,
             sender: 'user',
             text: currentMessage.trim(),
             timestamp: new Date()
@@ -585,7 +705,7 @@ const ChatInterview = () => {
         const aiResponse = await sendToGemini(messageToProcess);
 
         const aiMessage = {
-            id: Date.now() + 1,
+            id: messageId + 1,
             sender: 'ai',
             text: aiResponse,
             timestamp: new Date()
@@ -743,6 +863,30 @@ const ChatInterview = () => {
                     </div>
                 )}
 
+                {/* Interview Timer */}
+                {isInterviewActive && (
+                    <div className={`mb-2 p-3 rounded flex items-center justify-between ${timeLeft <= 60 ? 'bg-red-100 border border-red-300' : 'bg-blue-100 border border-blue-300'}`}>
+                        <div className="flex items-center space-x-2">
+                            <span className="text-2xl">⏱️</span>
+                            <div>
+                                <span className={`text-sm font-medium ${timeLeft <= 60 ? 'text-red-600' : 'text-blue-600'}`}>
+                                    Thời gian còn lại: <span className="text-lg font-bold">{formatTime(timeLeft)}</span>
+                                </span>
+                                {timeLeft <= 60 && <p className="text-xs text-red-500 mt-1">⚠️ Sắp hết thời gian!</p>}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Interview Ended Message */}
+                {isInterviewEnded && (
+                    <div className="mb-2 p-3 bg-gray-200 border border-gray-400 rounded">
+                        <p className="text-sm font-medium text-gray-700">
+                            ✅ Buổi phỏng vấn đã kết thúc. Đang tạo tóm tắt và nhận xét...
+                        </p>
+                    </div>
+                )}
+
                 {/* Message Input */}
                 <div className="flex space-x-2">
                     <input
@@ -752,14 +896,14 @@ const ChatInterview = () => {
                         onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                         placeholder="Nhập tin nhắn hoặc sử dụng giọng nói..."
                         className="flex-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        disabled={isProcessing}
+                        disabled={isProcessing || isInterviewEnded}
                     />
 
                     {/* Voice Button */}
                     {!isRecording ? (
                         <button
                             onClick={startRecording}
-                            disabled={!webSpeechSupported || isProcessing}
+                            disabled={!webSpeechSupported || isProcessing || isInterviewEnded}
                             className="px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
                         >
                             🎤
@@ -776,7 +920,7 @@ const ChatInterview = () => {
                     {/* Send Button */}
                     <button
                         onClick={sendMessage}
-                        disabled={!currentMessage.trim() || isProcessing}
+                        disabled={!currentMessage.trim() || isProcessing || isInterviewEnded}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
                     >
                         📤
